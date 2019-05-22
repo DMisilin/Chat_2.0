@@ -10,7 +10,7 @@ CREATE TABLE `history` (
     `hist_id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'идентификатор записи',
     `dialog` varchar(70) COMMENT 'названия диалога', 
     `text_mess` varchar(255) COMMENT 'текст сообщения',
-    `date` datetime COMMENT 'время получения сообщения сервером (пока не реализовано)'
+    `date` datetime COMMENT 'время получения сообщения сервером (пока не реализовано)',
 
     PRIMARY KEY (`hist_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
