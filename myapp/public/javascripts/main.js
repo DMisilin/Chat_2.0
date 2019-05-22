@@ -9,7 +9,36 @@
     const $forAll = document.querySelector('.forAll');
     const $test = document.querySelector('.test');
 
-    const ws = new WebSocket('ws://localhost:40509/pages/chat.html');
+    const getInfoFromHash = (hash, paramName) => {
+        const temp = hash.split('#');
+        switch (paramName) {
+            case 'user': {
+                result = decodeURI(temp[1]);
+                break;
+            }
+            case 'dialog': {
+                result = decodeURI(temp[2]);
+                break;
+            }
+        }
+        return result;
+    }
+
+    const deleteAndAddHistory = (element, history) => {
+        while ($history.firstChild) {
+            $history.removeChild($history.firstChild);
+        }
+        history.forEach((item) => {
+            const $message = document.createElement('div');
+            $message.innerText = item;
+            $history.insertBefore($message, $history.children[0]);
+            console.log(item);
+        });
+    } 
+
+    const params = new URL(document.location.href).searchParams;
+    const login = params.get('user');
+    const ws = new WebSocket(`ws://localhost:40509/pages/chat.html?user=${login}`);
 
     ws.onopen = () => {
         console.log('Welcome!');
@@ -89,32 +118,5 @@
                 deleteAndAddHistory($history, history);
             }
         }
-    }
-
-    const getInfoFromHash = (hash, paramName) => {
-        const temp = hash.split('#');
-        switch (paramName) {
-            case 'user': {
-                result = decodeURI(temp[1]);
-                break;
-            }
-            case 'dialog': {
-                result = decodeURI(temp[2]);
-                break;
-            }
-        }
-        return result;
-    }
-
-    const deleteAndAddHistory = (element, history) => {
-        while ($history.firstChild) {
-            $history.removeChild($history.firstChild);
-        }
-        history.forEach((item) => {
-            const $message = document.createElement('div');
-            $message.innerText = item;
-            $history.insertBefore($message, $history.children[0]);
-            console.log(item);
-        });
     }
 })();

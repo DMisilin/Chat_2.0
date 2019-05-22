@@ -38,7 +38,7 @@
             }
             case 'successRegistration': {
                 const userName = responce.body;
-                document.location = `http://localhost:3000/pages/chat.html#${userName}`;
+                document.location = `http://localhost:3000/pages/chat.html?user=${userName}`;
                 break;
             }
         }
