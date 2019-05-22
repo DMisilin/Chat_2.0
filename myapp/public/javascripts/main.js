@@ -9,19 +9,9 @@
     const $forAll = document.querySelector('.forAll');
     const $test = document.querySelector('.test');
 
-    const getInfoFromHash = (hash, paramName) => {
-        const temp = hash.split('#');
-        switch (paramName) {
-            case 'user': {
-                result = decodeURI(temp[1]);
-                break;
-            }
-            case 'dialog': {
-                result = decodeURI(temp[2]);
-                break;
-            }
-        }
-        return result;
+    const getValueFromURL = (param) => {
+        const params = new URL(document.location.href).searchParams;
+        return params.get(param);
     }
 
     const deleteAndAddHistory = (element, history) => {
@@ -36,8 +26,17 @@
         });
     } 
 
-    const params = new URL(document.location.href).searchParams;
-    const login = params.get('user');
+    const click = (dialogName) => {
+        localStorage.setItem('dialogName', dialogName);
+        const message = {
+            type: 'getHistory',
+            dialog: $forAll.textContent
+        }
+        console.log(JSON.stringify(message));
+        ws.send(JSON.stringify(message));
+    }
+
+    const login = getValueFromURL('user');
     const ws = new WebSocket(`ws://localhost:40509/pages/chat.html?user=${login}`);
 
     ws.onopen = () => {
@@ -49,12 +48,13 @@
             $enamy.innerText = nameNewDialog;
             $dialogsList.appendChild($enamy);
 
+            $enamy.onclick = click(nameNewDialog);
+
             console.log(`Created new dialog - ${nameNewDialog}`);
         }
 
         $forAll.onclick = () => {
-            const hash = document.location.hash;
-            document.location.hash = getInfoFromHash(hash, 'user') + '#' + $forAll.textContent;
+            localStorage.setItem('dialogName', `${$forAll.textContent}`);
             const message = {
                 type: 'getHistory',
                 dialog: $forAll.textContent
@@ -63,16 +63,16 @@
             ws.send(JSON.stringify(message));
         }
 
-        $test.onclick = () => {
-            const hash = document.location.hash;
-            document.location.hash = getInfoFromHash(hash, 'user') + '#' + $test.textContent;
-            const message = {
-                type: 'getHistory',
-                dialog: $test.textContent
-            }
-            console.log(JSON.stringify(message));
-            ws.send(JSON.stringify(message));
-        }
+        // $test.onclick = () => {
+        //     const hash = document.location.hash;
+        //     document.location.hash = getInfoFromHash(hash, 'user') + '#' + $test.textContent;
+        //     const message = {
+        //         type: 'getHistory',
+        //         dialog: $test.textContent
+        //     }
+        //     console.log(JSON.stringify(message));
+        //     ws.send(JSON.stringify(message));
+        // }
 
         $sendMessage.onclick = () => { //отправка сообщения
             if ($inputText.value === '') {
@@ -82,9 +82,8 @@
             if ($errorText.innerText != '') {
                 $errorText.innerText = '';
             }; //очистка сообщения об ошибке, если оно было
-            const hash = document.location.hash;
-            const userName = getInfoFromHash(hash, 'user');
-            const dialog = getInfoFromHash(hash, 'dialog');
+            const userName = getValueFromURL('user');
+            const dialog = localStorage.getItem('dialogName');
             const date = new Date;
             const message = {
                 type: 'userMessage',
@@ -100,8 +99,7 @@
     }
 
     ws.onmessage = (event) => {
-        const hash = document.location.hash;
-        const dialog = getInfoFromHash(hash, 'dialog');
+        const dialog = localStorage.getItem('dialogName');
         const parsedMessage = JSON.parse(event.data);
 
         switch (parsedMessage.type) {
