@@ -1,0 +1,48 @@
+<html>
+
+<head>
+    <style>
+        .workWindow {
+            position: relative;
+        }
+        .dialogs {
+            position: absolute;
+            background: #816a6a;
+            left: 0%;
+            width: 500px;
+            height: 800px;
+        }
+
+        .messages {
+            position: absolute;
+            background: #54a086;
+            right: 0%;
+            width: 800px;
+            height: 800px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Daz ist chat!</h1>
+    <div class="workWindow">
+        <div class="dialogs">
+            <button class="createRoom">Create room</button>
+            <div class="dialogsList">Dislog list</div>
+            <button class="test">Test Baton</button>
+            <button class="forAll">forAll</button>
+        </div>
+
+        <div class="messages">
+            <div type="text" class="nameDialog"></div>
+            <input type="text" class="inputText">
+            <button class="sendMessage">Send</button>
+            <div type="text" class="errorText"> </div>
+            <div class="history"></div>
+        </div>
+    </div>
+
+    <script src="/javascripts/main.js">window.onload = () => {}</script>
+</body>
+
+</html>
