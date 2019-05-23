@@ -107,6 +107,9 @@
                 deleteAndAddHistory($history, history);
                 break;
             }
+            case 'apdateUsersList': {
+                const users = parsedMessage.body.split();
+            }
         }
     }
 })();

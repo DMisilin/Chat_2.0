@@ -5,11 +5,13 @@ const queris = require('../myapp/db/queris');
 
 const httpServer = http.createServer();
 const socketServer = new webSocket.Server({ noServer: true });
-let usersList = new WeakMap();
+const usersList = new WeakMap();
+let user;
 
 httpServer.on('upgrade', (request, socket, head) => {
-    const user = request.url.replace('/pages/chat.html?user=', '');
+    user = request.url.replace('/pages/chat.html?user=', '');
     usersList.set(socket, user);
+    console.log(`user == ${usersList.get(socket)}`);
 
     socketServer.handleUpgrade(request, socket, head, (ws) => {
         socketServer.emit('connection', ws, request);
@@ -17,16 +19,16 @@ httpServer.on('upgrade', (request, socket, head) => {
 });
 
 socketServer.on('connection', (socket) => {
+
     socket.on('message', async (message) => {
         console.log(`in: ${message}`);
-        console.log(socket.clients);
-        
+
         const messageParsed = JSON.parse(message);
         const login = messageParsed.login;
         const password = messageParsed.password;
         const dialog = messageParsed.dialog;
         const connectDB = await db.getConnection();
-        
+
         switch (messageParsed.type) {
             case 'registration': {
                 let responceRegistration;
@@ -103,6 +105,14 @@ socketServer.on('connection', (socket) => {
                 break;
             }
         }
+    });
+
+    socket.on('open', () => {
+        console.log(`OPEN`);
+    });
+
+    socket.on('close', () => {
+        console.log(`CLOSE`);
     });
 });
 
