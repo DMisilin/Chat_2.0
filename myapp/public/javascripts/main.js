@@ -8,12 +8,12 @@
     //Кнопки
     const $forAll = document.querySelector('.forAll');
     const $test = document.querySelector('.test');
-
+    
     const getValueFromURL = (param) => {
         const params = new URL(document.location.href).searchParams;
         return params.get(param);
     }
-
+    
     const deleteAndAddHistory = (element, history) => {
         while ($history.firstChild) {
             $history.removeChild($history.firstChild);
@@ -25,19 +25,20 @@
             console.log(item);
         });
     } 
+    
+    const login = getValueFromURL('user');    
+    const ws = new WebSocket(`ws://localhost:40509/pages/chat.html?user=${login}`);
 
     const click = (dialogName) => {
+        console.log(`onlick to - ${dialogName}`);
         localStorage.setItem('dialogName', dialogName);
         const message = {
             type: 'getHistory',
-            dialog: $forAll.textContent
+            dialog: dialogName
         }
         console.log(JSON.stringify(message));
         ws.send(JSON.stringify(message));
     }
-
-    const login = getValueFromURL('user');
-    const ws = new WebSocket(`ws://localhost:40509/pages/chat.html?user=${login}`);
 
     ws.onopen = () => {
         console.log('Welcome!');
@@ -48,9 +49,9 @@
             $enamy.innerText = nameNewDialog;
             $dialogsList.appendChild($enamy);
 
-            $enamy.onclick = click(nameNewDialog);
+            $enamy.onclick = () => click(nameNewDialog);
 
-            console.log(`Created new dialog - ${nameNewDialog}`);
+            console.log(`Created new dialog - "${nameNewDialog}"`);
         }
 
         $forAll.onclick = () => {
@@ -62,17 +63,6 @@
             console.log(JSON.stringify(message));
             ws.send(JSON.stringify(message));
         }
-
-        // $test.onclick = () => {
-        //     const hash = document.location.hash;
-        //     document.location.hash = getInfoFromHash(hash, 'user') + '#' + $test.textContent;
-        //     const message = {
-        //         type: 'getHistory',
-        //         dialog: $test.textContent
-        //     }
-        //     console.log(JSON.stringify(message));
-        //     ws.send(JSON.stringify(message));
-        // }
 
         $sendMessage.onclick = () => { //отправка сообщения
             if ($inputText.value === '') {
@@ -109,11 +99,13 @@
                     $newMessage.innerText = parsedMessage.body;
                     $history.insertBefore($newMessage, $history.children[0]);
                 }
+                break;
             }
             case 'getHistory': {
                 const history = parsedMessage.body.split('<br>');
                 console.log(history);
                 deleteAndAddHistory($history, history);
+                break;
             }
         }
     }

@@ -3,18 +3,23 @@ const http = require('http');
 const db = require('../myapp/db/db');
 const queris = require('../myapp/db/queris');
 
-const server = http.createServer();
-const webServer = new webSocket.Server({ noServer: true });
+const httpServer = http.createServer();
+const socketServer = new webSocket.Server({ noServer: true });
+let usersList = new WeakMap();
 
-server.on('upgrade', function upgrade(request, socket, head) {
-    webServer.handleUpgrade(request, socket, head, function done(ws) {
-        webServer.emit('connection', ws, request);
+httpServer.on('upgrade', (request, socket, head) => {
+    const user = request.url.replace('/pages/chat.html?user=', '');
+    usersList.set(socket, user);
+
+    socketServer.handleUpgrade(request, socket, head, (ws) => {
+        socketServer.emit('connection', ws, request);
     });
 });
 
-webServer.on('connection', (socket) => {
+socketServer.on('connection', (socket) => {
     socket.on('message', async (message) => {
         console.log(`in: ${message}`);
+        console.log(socket.clients);
         
         const messageParsed = JSON.parse(message);
         const login = messageParsed.login;
@@ -73,8 +78,11 @@ webServer.on('connection', (socket) => {
                     dialog: messageParsed.dialog,
                     body: textMessage
                 }
-                socket.send(JSON.stringify(responceRegistration));
+                socketServer.clients.forEach(each = (client) => {
+                    client.send(JSON.stringify(responceRegistration));
+                });
                 console.log(`new message added in history`);
+                console.log(JSON.stringify(responceRegistration));
             }
             case 'getHistory': {
                 const history = [];
@@ -98,4 +106,4 @@ webServer.on('connection', (socket) => {
     });
 });
 
-server.listen(40509);
+httpServer.listen(40509);
