@@ -4,7 +4,7 @@
     let $password = document.querySelector('.password');
     let $error = document.querySelector('.error');
 
-    const ws = new WebSocket('ws://localhost:40509/pages/authorization.html');
+    const ws = new WebSocket('ws://localhost:40509/pages/authorization.html?login=null&chat=null');
 
     ws.onopen = () => {
         console.log(`Connected.`);
@@ -38,7 +38,7 @@
             }
             case 'successAuthorization': {
                 const userName = $login.value;
-                document.location = `http://localhost:3000/pages/chat.html?user=${userName}`;
+                document.location = `http://localhost:3000/pages/chat.html?login=${userName}&chat=null`;
                 break;
             }
         }
