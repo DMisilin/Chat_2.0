@@ -1,0 +1,11 @@
+# Optional npm cache directory
+.npm
+
+# dotenv environment variables file
+.env
+
+# Игнорировать модули
+/node_modules
+
+# Тест
+wss.js
