@@ -48,7 +48,7 @@ httpServer.on('upgrade', (request, socket, head) => {
 socketServer.on('connection', (socket, user) => {
     getActiveUsers();
     console.log(`user.login == ${user.login}`);
-    console.log(`user.chat === ${user.chat}`);
+    console.log(`user.chat == ${user.chat}`);
 
     socket.on('message', async (message) => {
         console.log(`IN: ${message}`);
