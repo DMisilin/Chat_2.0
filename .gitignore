@@ -5,7 +5,7 @@
 .env
 
 # Игнорировать модули
-/node_modules
+/node_modules/*
 
 # Тест
 wss.js
