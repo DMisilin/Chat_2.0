@@ -1,10 +1,15 @@
 const webSocket = require('ws');
 const http = require('http');
-const db = require('../myapp/db/db');
-const queris = require('../myapp/db/queris');
+const db = require('../app/db/db');
+const queris = require('../app/db/queris');
+const logger = require('../app/config/winston');
+const registration = require('./methods/registration');
 
-const httpServer = http.createServer();                        //server
-const socketServer = new webSocket.Server({ noServer: true }); //wss1
+const log = new logger();
+
+const httpServer = http.createServer();                        
+const socketServer = new webSocket.Server({ noServer: true }); 
+const port = 40509;
 const usersList = new Map();
 
 const getValueFromURL = (param, url) => {
@@ -39,16 +44,18 @@ httpServer.on('upgrade', (request, socket, head) => {
         const chat = getValueFromURL('chat', userParams);
         const user = { socket, login, chat };
         updateUsersList(login, chat, socket);
-        console.log(`insert ot update Map.UserList`);
-        console.log(usersList);
+        console.log(`CONSOOOOOOOLE`);
+
+        log.log('info', 'test message %s', 'UPGRADE');
+        // console.log(`insert ot update Map.UserList`);
+        // console.log(usersList);
+
         socketServer.emit('connection', socket, user);
     });
 });
 
 socketServer.on('connection', (socket, user) => {
     getActiveUsers();
-    console.log(`user.login === ${user.login}`);
-    console.log(`user.chat == ${user.chat}`);
 
     socket.on('message', async (message) => {
         console.log(`IN: ${message}`);
@@ -61,31 +68,35 @@ socketServer.on('connection', (socket, user) => {
 
         switch (messageParsed.type) {
             case 'registration': {
-                let responceRegistration;
-                const [result] = await connectDB.query(queris.getInfoUser, [messageParsed.login]);
-                console.log(queris.getInfoUser, [login]); //SQL LOG
-                if (result.length > 0) {
-                    responceRegistration = {
-                        type: 'errorRegistration',
-                        body: 'This user have account <a href="http://localhost:3000/pages/authorization.html">Go to AuthorizationPage</a>'
-                    }
-                } else {
-                    connectDB.query(queris.addNewUser, [messageParsed.login, messageParsed.password]);
-                    console.log(queris.addNewUser, [messageParsed.login, messageParsed.password]); //SQL LOG
-                    console.log(`User ${login} added`);
-                    responceRegistration = {
-                        type: 'successRegistration',
-                        body: messageParsed.login
-                    }
-                }
-                socket.send(JSON.stringify(responceRegistration));
-                console.log(JSON.stringify(responceRegistration));
+                registration(connectDB, socket, messageParsed);
+                // let responceRegistration;
+                // const [result] = await connectDB.query(queris.getInfoUser, [messageParsed.login]);
+                // console.log(queris.getInfoUser, [login]); //SQL LOG
+                // if (result.length > 0) {
+                //     responceRegistration = {
+                //         type: 'errorRegistration',
+                //         body: 'This user have account <a href="http://localhost:3000/pages/authorization.html">Go to AuthorizationPage</a>'
+                //     }
+                // } else {
+                //     connectDB.query(queris.addNewUser, [messageParsed.login, messageParsed.password]);
+                //     console.log(queris.addNewUser, [messageParsed.login, messageParsed.password]); //SQL LOG
+                //     console.log(`User ${login} added`);
+                //     responceRegistration = {
+                //         type: 'successRegistration',
+                //         body: messageParsed.login
+                //     }
+                // }
+                // socket.send(JSON.stringify(responceRegistration));
+                // console.log(JSON.stringify(responceRegistration));
+                console.log(`GOOD!`);
                 break;
             };
             case 'authorization': {
                 let responceAuthorization;
                 const [result] = await connectDB.query(queris.checkUser, [messageParsed.login, password]);
-                console.log(queris.checkUser, [messageParsed.login, password]); //SQL LOG
+                // console.log(queris.checkUser, [messageParsed.login, password]); //SQL LOG
+                logger.log('info', 'test message %s', queris.checkUser, [messageParsed.login, password]);
+
                 if (result.length === 0) {
                     responceAuthorization = {
                         type: 'errorAuthorization',
@@ -224,4 +235,5 @@ socketServer.on('connection', (socket, user) => {
     });
 });
 
-httpServer.listen(40509);
+// httpServer.listen(port, () => logger.info(`=====> Server was started and leasting ${port} port!`));
+httpServer.listen(port);
