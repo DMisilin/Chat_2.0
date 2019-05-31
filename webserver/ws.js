@@ -8,10 +8,11 @@ const authorization = require('./methods/authorization');
 const functions = require('./methods/functions');
 const getHistory = require('./methods/getHistory');
 const getActiveChats = require('./methods/getActiveChats');
+const responceToInvite = require('./methods/responceToInvite');
 
 const log = new logger();
-const httpServer = http.createServer();                        
-const socketServer = new webSocket.Server({ noServer: true }); 
+const httpServer = http.createServer();
+const socketServer = new webSocket.Server({ noServer: true });
 const port = 40509;
 const usersList = new Map();
 
@@ -51,7 +52,6 @@ socketServer.on('connection', (socket, user) => {
     socket.on('message', async (message) => {
         log.log('info', 'Received message:: %s', message);
         const login = user.login;
-
         const messageParsed = JSON.parse(message);
         log.log('info', 'messageParsed: %s', JSON.parse(message));
         const chat = messageParsed.chat;
@@ -59,7 +59,7 @@ socketServer.on('connection', (socket, user) => {
 
         switch (messageParsed.type) {
             case 'registration': {
-                const responceRegistration = await registration(messageParsed);                
+                const responceRegistration = await registration(messageParsed);
                 socket.send(JSON.stringify(responceRegistration));
                 log.log('info', 'responceRegistration: %s', responceRegistration);
                 break;
@@ -110,13 +110,13 @@ socketServer.on('connection', (socket, user) => {
                 break;
             }
             case 'inviteUser': {
-                const sockets = usersList.get(messageParsed.to);
                 const message = {
                     type: 'Invite',
                     from: messageParsed.from,
                     to: messageParsed.to,
                     chat: chat
                 }
+                const sockets = usersList.get(messageParsed.to);
                 for (const [socket, chat] of sockets) {
                     socket.send(JSON.stringify(message));
                     log.log('info', 'Sended invite fo user "%s"', messageParsed.to);
@@ -124,20 +124,14 @@ socketServer.on('connection', (socket, user) => {
                 break;
             }
             case 'responceToInvite': {
-                if (messageParsed.result === 1) {
-                    await connectDB.query(queris.createOrUpdateChat, [messageParsed.to, messageParsed.chat]);
-                } else if (messageParsed.result === 2) {
+                const message = await responceToInvite(messageParsed);
+                if (message.type === 'RejectInvate') {
                     const sockets = usersList.get(messageParsed.from);
-                    const message = {
-                        type: 'RejectInvate',
-                        from: messageParsed.from,
-                        to: messageParsed.to,
-                        chat: messageParsed.chat
-                    }
                     for (const [socket, chat] of sockets) {
                         socket.send(JSON.stringify(message));
                     }
-                } else log.log('info', 'Получен НЕвалидный ответ на инвайт в чат "%s"', messageparse.chat);
+                    log.log('info', 'Sended reject to "%s" from "%s"', messageParsed.from, messageParsed.to);
+                }
                 break;
             }
             default: {
