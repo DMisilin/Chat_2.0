@@ -3,9 +3,11 @@ const http = require('http');
 const db = require('../app/db/db');
 const queris = require('../app/db/queris');
 const logger = require('../app/config/winston');
-const registration = require('./methods/registration');
-const authorization = require('./methods/authorization');
 const functions = require('./methods/functions');
+
+const methods = require('../webserver/methods');
+//const registration = require('./methods/registration');
+const authorization = require('./methods/authorization');
 const getHistory = require('./methods/getHistory');
 const getActiveChats = require('./methods/getActiveChats');
 const responceToInvite = require('./methods/responceToInvite');
@@ -58,9 +60,11 @@ socketServer.on('connection', (socket, user) => {
 
         switch (messageParsed.type) {
             case 'registration': {
-                const responceRegistration = await registration(messageParsed);
-                socket.send(JSON.stringify(responceRegistration));
-                logger.info('responceRegistration: %s', responceRegistration);
+                await methods.registration({ data: messageParsed, socket: socket, list: usersList, login: login });
+
+                // const responceRegistration = await registration(messageParsed);
+                // socket.send(JSON.stringify(responceRegistration));
+                // logger.info('responceRegistration: %s', responceRegistration);
                 break;
             };
             case 'authorization': {
