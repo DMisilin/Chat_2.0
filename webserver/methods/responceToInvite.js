@@ -2,8 +2,6 @@ const queris = require('../../app/db/queris');
 const db = require('../../app/db/db');
 const logger = require('../../app/config/winston');
 
-const log = new logger();
-
 module.exports = async (messageParsed) => {
     const message = {
         type: 'default',
@@ -15,7 +13,7 @@ module.exports = async (messageParsed) => {
     
     if (messageParsed.result === 1) {
         await connectDB.query(queris.createOrUpdateChat, [messageParsed.to, messageParsed.chat]);
-        log.log('info', 'MatiaDB %s WITH %s', queris.createOrUpdateChat, [messageParsed.to, messageParsed.chat]);
+        logger.info('MatiaDB %s WITH %s', queris.createOrUpdateChat, [messageParsed.to, messageParsed.chat]);
     } else if (messageParsed.result === 2) {
         message.type = 'RejectInvate';
     }

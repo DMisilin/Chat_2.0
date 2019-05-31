@@ -2,8 +2,6 @@ const queris = require('../../app/db/queris');
 const db = require('../../app/db/db');
 const logger = require('../../app/config/winston');
 
-const log = new logger();
-
 module.exports = async (messageParsed) => {
     const connectDB = await db.getConnection();
     const responceAuthorization = {
@@ -11,7 +9,7 @@ module.exports = async (messageParsed) => {
         body: null
     };
     const [result] = await connectDB.query(queris.checkUser, [messageParsed.login, messageParsed.password]);
-    log.log('info', 'MatiaDB %s WITH %s', queris.checkUser, [messageParsed.login, messageParsed.password]);
+    logger.info('MatiaDB %s WITH %s', queris.checkUser, [messageParsed.login, messageParsed.password]);
 
     if (result.length === 0) {
         responceAuthorization.type = 'errorAuthorization';

@@ -10,7 +10,6 @@ const getHistory = require('./methods/getHistory');
 const getActiveChats = require('./methods/getActiveChats');
 const responceToInvite = require('./methods/responceToInvite');
 
-const log = new logger();
 const httpServer = http.createServer();
 const socketServer = new webSocket.Server({ noServer: true });
 const port = 40509;
@@ -41,7 +40,7 @@ httpServer.on('upgrade', (request, socket, head) => {
         const user = { socket, login, chat };
         updateUsersList(login, chat, socket);
 
-        log.log('info', 'In "UsersList" added user - %s with chat "%s"', login, chat);
+        logger.info('In "UsersList" added user - %s with chat "%s"', login, chat);
         socketServer.emit('connection', socket, user);
     });
 });
@@ -50,10 +49,10 @@ socketServer.on('connection', (socket, user) => {
     getActiveUsers();
 
     socket.on('message', async (message) => {
-        log.log('info', 'Received message:: %s', message);
+        logger.info('Received message:: %s', message);
         const login = user.login;
         const messageParsed = JSON.parse(message);
-        log.log('info', 'messageParsed: %s', JSON.parse(message));
+        logger.info('messageParsed: %s', JSON.parse(message));
         const chat = messageParsed.chat;
         const connectDB = await db.getConnection();
 
@@ -61,13 +60,13 @@ socketServer.on('connection', (socket, user) => {
             case 'registration': {
                 const responceRegistration = await registration(messageParsed);
                 socket.send(JSON.stringify(responceRegistration));
-                log.log('info', 'responceRegistration: %s', responceRegistration);
+                logger.info('responceRegistration: %s', responceRegistration);
                 break;
             };
             case 'authorization': {
                 const responceAuthorization = await authorization(messageParsed);
                 socket.send(JSON.stringify(responceAuthorization));
-                log.log('info', 'responceAuthorization: %s', responceAuthorization);
+                logger.info('responceAuthorization: %s', responceAuthorization);
                 break;
             };
             case 'userMessage': {
@@ -77,24 +76,24 @@ socketServer.on('connection', (socket, user) => {
                     body: messageParsed.text
                 }
                 const [result] = await connectDB.query(queris.getUsersOfChat, [chat]);
-                log.log('info', 'MatiaDB %s WITH %s', queris.getUsersOfChat, [chat]);
+                logger.info('MatiaDB %s WITH %s', queris.getUsersOfChat, [chat]);
                 result.forEach((item) => {
                     if (usersList.has(item.user)) { //если юзер есть в списке активных пользователей
                         const sockets = usersList.get(item.user);
                         for (const [socket, chat] of sockets) {
                             if (chat === messageParsed.chat) {
                                 socket.send(JSON.stringify(message));
-                                log.log('info', 'Send message %s', message);
+                                logger.info('Send message %s', message);
                             }
                         }
                     }
                 });
                 await connectDB.query(queris.setHistoryRow, [chat, messageParsed.text, messageParsed.from]);
-                log.log('info', 'MatiaDB %s WITH %s', queris.setHistoryRow, [chat, messageParsed.text, messageParsed.from]);
+                logger.info('MatiaDB %s WITH %s', queris.setHistoryRow, [chat, messageParsed.text, messageParsed.from]);
             }
             case 'getHistory': {
                 updateUsersList(messageParsed.login, messageParsed.chat, socket);
-                log.log('info', 'UsersList %s', usersList.keys());
+                logger.info('UsersList %s', usersList.keys());
                 const historyPool = await getHistory(messageParsed.chat);
                 socket.send(JSON.stringify(historyPool));
                 break;
@@ -119,7 +118,7 @@ socketServer.on('connection', (socket, user) => {
                 const sockets = usersList.get(messageParsed.to);
                 for (const [socket, chat] of sockets) {
                     socket.send(JSON.stringify(message));
-                    log.log('info', 'Sended invite fo user "%s"', messageParsed.to);
+                    logger.info('Sended invite fo user "%s"', messageParsed.to);
                 }
                 break;
             }
@@ -130,12 +129,12 @@ socketServer.on('connection', (socket, user) => {
                     for (const [socket, chat] of sockets) {
                         socket.send(JSON.stringify(message));
                     }
-                    log.log('info', 'Sended reject to "%s" from "%s"', messageParsed.from, messageParsed.to);
+                    logger.info('Sended reject to "%s" from "%s"', messageParsed.from, messageParsed.to);
                 }
                 break;
             }
             default: {
-                log.log('info', 'Прилетело что-то неопознаваемое: %s', message);
+                logger.info('Прилетело что-то неопознаваемое: %s', message);
                 break;
             }
         }
@@ -145,14 +144,14 @@ socketServer.on('connection', (socket, user) => {
         const leaveUserSockets = usersList.get(user.login);
         if (leaveUserSockets.size > 1) {
             usersList.get(user.login).delete(socket);
-            log.log('info', 'Socket for user "%s" deleted', user.login);
+            logger.info('Socket for user "%s" deleted', user.login);
         } else {
             usersList.delete(user.login);
-            log.log('info', 'User "%s" deleted from UsersList', user.login);
+            logger.info('User "%s" deleted from UsersList', user.login);
         }
-        log.log('info', 'UsersList was update: %s', usersList);
+        logger.info('UsersList was update: %s', usersList);
         getActiveUsers();
     });
 });
 
-httpServer.listen(port, () => log.log('info', 'Server started and liastning %s port!', port));
+httpServer.listen(port, () => logger.info('Server started and liastning %s port!', port));

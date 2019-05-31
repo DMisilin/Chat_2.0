@@ -6,7 +6,7 @@
     const $history = document.querySelector('.history');
     const $errorText = document.querySelector('.errorText');
     const $usersList = document.querySelector('.userslist');
-
+    
     const getValueFromURL = (param) => {
         const params = new URL(document.location.href).searchParams;
         return params.get(param);
