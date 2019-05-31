@@ -9,6 +9,7 @@ const myFormat = printf(({level, message, timestamp}) => {
 module.exports = class Logger {
     constructor() {
         return createLogger({
+            level: 'info',
             format: format.combine(
                 format.timestamp({
                     format: 'YYYY-MM-DD HH:mm:ss'
@@ -25,4 +26,3 @@ module.exports = class Logger {
         });
     }
 }
-

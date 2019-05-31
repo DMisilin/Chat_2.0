@@ -4,21 +4,17 @@ const db = require('../app/db/db');
 const queris = require('../app/db/queris');
 const logger = require('../app/config/winston');
 const registration = require('./methods/registration');
+const authorization = require('./methods/authorization');
+const functions = require('./methods/functions');
+const getHistory = require('./methods/getHistory');
+const getActiveChats = require('./methods/getActiveChats');
 
 const log = new logger();
-
 const httpServer = http.createServer();                        
 const socketServer = new webSocket.Server({ noServer: true }); 
 const port = 40509;
 const usersList = new Map();
 
-const getValueFromURL = (param, url) => {
-    const params = url.split('&');
-    switch (param) {
-        case 'login': return params[0].replace('login=', '');
-        case 'chat': return params[1].replace('chat=', '');
-    }
-}
 const getActiveUsers = () => {
     const array = Array.from(usersList.keys());
     const listActive = array.join(', ');
@@ -26,7 +22,6 @@ const getActiveUsers = () => {
         type: 'apdateActiveUsersList',
         body: listActive
     }
-
     socketServer.clients.forEach(each = (client) => {
         client.send(JSON.stringify(message));
     })
@@ -40,16 +35,12 @@ const updateUsersList = (login, chat, webSocket) => {
 httpServer.on('upgrade', (request, socket, head) => {
     socketServer.handleUpgrade(request, socket, head, (socket) => {
         const userParams = request.url.replace('/pages/chat.html?', '');
-        const login = getValueFromURL('login', userParams);
-        const chat = getValueFromURL('chat', userParams);
+        const login = functions.getValueFromURL('login', userParams);
+        const chat = functions.getValueFromURL('chat', userParams);
         const user = { socket, login, chat };
         updateUsersList(login, chat, socket);
-        console.log(`CONSOOOOOOOLE`);
 
-        log.log('info', 'test message %s', 'UPGRADE');
-        // console.log(`insert ot update Map.UserList`);
-        // console.log(usersList);
-
+        log.log('info', 'In "UsersList" added user - %s with chat "%s"', login, chat);
         socketServer.emit('connection', socket, user);
     });
 });
@@ -58,58 +49,25 @@ socketServer.on('connection', (socket, user) => {
     getActiveUsers();
 
     socket.on('message', async (message) => {
-        console.log(`IN: ${message}`);
+        log.log('info', 'Received message:: %s', message);
         const login = user.login;
 
         const messageParsed = JSON.parse(message);
-        const password = messageParsed.password;
+        log.log('info', 'messageParsed: %s', JSON.parse(message));
         const chat = messageParsed.chat;
         const connectDB = await db.getConnection();
 
         switch (messageParsed.type) {
             case 'registration': {
-                registration(connectDB, socket, messageParsed);
-                // let responceRegistration;
-                // const [result] = await connectDB.query(queris.getInfoUser, [messageParsed.login]);
-                // console.log(queris.getInfoUser, [login]); //SQL LOG
-                // if (result.length > 0) {
-                //     responceRegistration = {
-                //         type: 'errorRegistration',
-                //         body: 'This user have account <a href="http://localhost:3000/pages/authorization.html">Go to AuthorizationPage</a>'
-                //     }
-                // } else {
-                //     connectDB.query(queris.addNewUser, [messageParsed.login, messageParsed.password]);
-                //     console.log(queris.addNewUser, [messageParsed.login, messageParsed.password]); //SQL LOG
-                //     console.log(`User ${login} added`);
-                //     responceRegistration = {
-                //         type: 'successRegistration',
-                //         body: messageParsed.login
-                //     }
-                // }
-                // socket.send(JSON.stringify(responceRegistration));
-                // console.log(JSON.stringify(responceRegistration));
-                console.log(`GOOD!`);
+                const responceRegistration = await registration(messageParsed);                
+                socket.send(JSON.stringify(responceRegistration));
+                log.log('info', 'responceRegistration: %s', responceRegistration);
                 break;
             };
             case 'authorization': {
-                let responceAuthorization;
-                const [result] = await connectDB.query(queris.checkUser, [messageParsed.login, password]);
-                // console.log(queris.checkUser, [messageParsed.login, password]); //SQL LOG
-                logger.log('info', 'test message %s', queris.checkUser, [messageParsed.login, password]);
-
-                if (result.length === 0) {
-                    responceAuthorization = {
-                        type: 'errorAuthorization',
-                        body: 'Not validate login or password'
-                    }
-                } else {
-                    responceAuthorization = {
-                        type: 'successAuthorization',
-                        body: `${login}`
-                    }
-                }
+                const responceAuthorization = await authorization(messageParsed);
                 socket.send(JSON.stringify(responceAuthorization));
-                console.log(JSON.stringify(responceAuthorization));
+                log.log('info', 'responceAuthorization: %s', responceAuthorization);
                 break;
             };
             case 'userMessage': {
@@ -119,36 +77,25 @@ socketServer.on('connection', (socket, user) => {
                     body: messageParsed.text
                 }
                 const [result] = await connectDB.query(queris.getUsersOfChat, [chat]);
+                log.log('info', 'MatiaDB %s WITH %s', queris.getUsersOfChat, [chat]);
                 result.forEach((item) => {
                     if (usersList.has(item.user)) { //если юзер есть в списке активных пользователей
                         const sockets = usersList.get(item.user);
                         for (const [socket, chat] of sockets) {
                             if (chat === messageParsed.chat) {
                                 socket.send(JSON.stringify(message));
+                                log.log('info', 'Send message %s', message);
                             }
                         }
                     }
                 });
                 await connectDB.query(queris.setHistoryRow, [chat, messageParsed.text, messageParsed.from]);
-                console.log(queris.setHistoryRow, [chat, messageParsed.text, messageParsed.from]); //SQL LOG
-                console.log(`SENDED::`);
-                console.log(message);
+                log.log('info', 'MatiaDB %s WITH %s', queris.setHistoryRow, [chat, messageParsed.text, messageParsed.from]);
             }
             case 'getHistory': {
                 updateUsersList(messageParsed.login, messageParsed.chat, socket);
-                console.log(usersList);
-
-                const history = [];
-                const [result] = await connectDB.query(queris.getHystoryOfChat, [chat]);
-                console.log(queris.getHystoryOfChat, [chat]); //SQL LOG
-
-                result.forEach((item) => {
-                    history.push(item.text);
-                });
-                const historyPool = {
-                    type: 'getHistory',
-                    body: history.join('<br>')
-                }
+                log.log('info', 'UsersList %s', usersList.keys());
+                const historyPool = await getHistory(messageParsed.chat);
                 socket.send(JSON.stringify(historyPool));
                 break;
             }
@@ -158,18 +105,7 @@ socketServer.on('connection', (socket, user) => {
                 break;
             }
             case 'getActiveChats': {
-                const [result] = await connectDB.query(queris.getChatsOfUser, [login]);
-                console.log(queris.getChatsOfUser, [login]);
-                const chatList = [];
-                result.forEach((item) => {
-                    chatList.push(item.title);
-                });
-                console.log(chatList);
-                const message = {
-                    type: 'getActiveChats',
-                    login: login,
-                    chats: chatList
-                }
+                const message = await getActiveChats(login);
                 socket.send(JSON.stringify(message));
                 break;
             }
@@ -181,11 +117,9 @@ socketServer.on('connection', (socket, user) => {
                     to: messageParsed.to,
                     chat: chat
                 }
-                console.log(`messageParsed.from ==== ${messageParsed.from}`);
-                console.log(`messageParsed.to ==== ${messageParsed.to}`);
                 for (const [socket, chat] of sockets) {
                     socket.send(JSON.stringify(message));
-                    console.log(`OUT:: ${JSON.stringify(message)}`);
+                    log.log('info', 'Sended invite fo user "%s"', messageParsed.to);
                 }
                 break;
             }
@@ -203,37 +137,28 @@ socketServer.on('connection', (socket, user) => {
                     for (const [socket, chat] of sockets) {
                         socket.send(JSON.stringify(message));
                     }
-                } else console.log(`Получен НЕвалидный ответ на инвайт в чат ${messageparse.chat}`);
+                } else log.log('info', 'Получен НЕвалидный ответ на инвайт в чат "%s"', messageparse.chat);
                 break;
             }
             default: {
-                console.log(`Priletela kakayto kuny == ${messageParsed}`);
+                log.log('info', 'Прилетело что-то неопознаваемое: %s', message);
                 break;
             }
         }
     });
 
-    socket.on('open', () => {
-        console.log(`OPEN`);
-    });
-
     socket.on('close', () => {
-        console.log(`User "${user.login}" leave!!!`);
         const leaveUserSockets = usersList.get(user.login);
-        console.log('?????????????? BEFORE  ----  LEAVE ?????????????????????');
-        console.log(usersList);
         if (leaveUserSockets.size > 1) {
             usersList.get(user.login).delete(socket);
-            console.log('delete socket');
+            log.log('info', 'Socket for user "%s" deleted', user.login);
         } else {
             usersList.delete(user.login);
-            console.log(`delete user --- ${user.login}`);
+            log.log('info', 'User "%s" deleted from UsersList', user.login);
         }
-        console.log('?????????????? LEAVE ?????????????????????');
-        console.log(usersList);
+        log.log('info', 'UsersList was update: %s', usersList);
         getActiveUsers();
     });
 });
 
-// httpServer.listen(port, () => logger.info(`=====> Server was started and leasting ${port} port!`));
-httpServer.listen(port);
+httpServer.listen(port, () => log.log('info', 'Server started and liastning %s port!', port));
