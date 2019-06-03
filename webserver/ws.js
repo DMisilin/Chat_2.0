@@ -2,7 +2,7 @@ const webSocket = require('ws');
 const http = require('http');
 const logger = require('../app/config/winston');
 const functions = require('./methods/functions');
-const methods = require('../webserver/methods');
+const methods = require('../webserver/methods/index');
 
 const httpServer = http.createServer();
 const socketServer = new webSocket.Server({ noServer: true });
@@ -36,24 +36,29 @@ socketServer.on('connection', (socket, user) => {
     getActiveUsers();
 
     socket.on('message', async (message) => {
-        logger.info('Received message:: %s', message);
         const messageParsed = JSON.parse(message);
         logger.info('messageParsed: %s', JSON.parse(message));
-
         const { type } = messageParsed;
-        console.log(type);
-        
         const method = methods[type];
-        console.log(method);
 
         if (typeof(method) !== 'function') {
             logger.info('Прилетело что-то неопознаваемое: %s', message);
             return;
         }
 
-        const data = type === 'getActiveChats' ? user : messageParsed;
-
-        await method({ data, socket, usersList });
+        switch(type) {
+            case 'getActiveChats': {
+                await methods.getActiveChats({ data: user, socket, usersList });
+                break;
+            }
+            case 'getHistory': {
+                usersList = await methods.getHistory({ data: messageParsed, socket, usersList }); 
+                break;
+            }
+            default: {
+                await method({ data: messageParsed, socket, usersList });
+            } 
+        }
 
         // switch (messageParsed.type) {
         //     case 'registration': {
