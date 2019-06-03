@@ -84,11 +84,6 @@
 
         $createRoom.onclick = () => { //создание диалога (кнопки)
             const nameNewChat = prompt(`Enter chat title:`, 'New_chat');
-            // const $enamy = document.createElement('button');
-            // $enamy.innerText = nameNewChat;
-            // $chatList.appendChild($enamy);
-
-            // $enamy.onclick = () => click(nameNewChat);
 
             console.log(`Created new dialog - "${nameNewChat}"`);
             const message = {
