@@ -1,21 +1,13 @@
 const webSocket = require('ws');
 const http = require('http');
-const db = require('../app/db/db');
-const queris = require('../app/db/queris');
 const logger = require('../app/config/winston');
 const functions = require('./methods/functions');
-
 const methods = require('../webserver/methods');
-//const registration = require('./methods/registration');
-const authorization = require('./methods/authorization');
-const getHistory = require('./methods/getHistory');
-const getActiveChats = require('./methods/getActiveChats');
-const responceToInvite = require('./methods/responceToInvite');
 
 const httpServer = http.createServer();
 const socketServer = new webSocket.Server({ noServer: true });
 const port = 40509;
-const usersList = new Map();
+let usersList = new Map();
 
 const getActiveUsers = () => {
     const array = Array.from(usersList.keys());
@@ -28,11 +20,6 @@ const getActiveUsers = () => {
         client.send(JSON.stringify(message));
     })
 }
-const updateUsersList = (login, chat, webSocket) => {
-    const connect = new Map();
-    connect.set(webSocket, chat);
-    usersList.has(login) ? usersList.get(login).set(webSocket, chat) : usersList.set(login, connect);
-}
 
 httpServer.on('upgrade', (request, socket, head) => {
     socketServer.handleUpgrade(request, socket, head, (socket) => {
@@ -40,9 +27,7 @@ httpServer.on('upgrade', (request, socket, head) => {
         const login = functions.getValueFromURL('login', userParams);
         const chat = functions.getValueFromURL('chat', userParams);
         const user = { socket, login, chat };
-        updateUsersList(login, chat, socket);
-
-        logger.info('In "UsersList" added user - %s with chat "%s"', login, chat);
+        usersList = functions.updateUsersList({ data: user, socket, usersList });
         socketServer.emit('connection', socket, user);
     });
 });
@@ -52,89 +37,40 @@ socketServer.on('connection', (socket, user) => {
 
     socket.on('message', async (message) => {
         logger.info('Received message:: %s', message);
-        const login = user.login;
         const messageParsed = JSON.parse(message);
         logger.info('messageParsed: %s', JSON.parse(message));
-        const chat = messageParsed.chat;
-        const connectDB = await db.getConnection();
 
         switch (messageParsed.type) {
             case 'registration': {
-                await methods.registration({ data: messageParsed, socket: socket, list: usersList, login: login });
-
-                // const responceRegistration = await registration(messageParsed);
-                // socket.send(JSON.stringify(responceRegistration));
-                // logger.info('responceRegistration: %s', responceRegistration);
+                await methods.registration({ data: messageParsed, socket, usersList});
                 break;
             };
             case 'authorization': {
-                const responceAuthorization = await authorization(messageParsed);
-                socket.send(JSON.stringify(responceAuthorization));
-                logger.info('responceAuthorization: %s', responceAuthorization);
+                await methods.authorization({ data: messageParsed, socket, usersList});
                 break;
             };
             case 'userMessage': {
-                message = {
-                    type: 'messageOk',
-                    chat: chat,
-                    body: messageParsed.text
-                }
-                const [result] = await connectDB.query(queris.getUsersOfChat, [chat]);
-                logger.info('MatiaDB %s WITH %s', queris.getUsersOfChat, [chat]);
-                result.forEach((item) => {
-                    if (usersList.has(item.user)) { //если юзер есть в списке активных пользователей
-                        const sockets = usersList.get(item.user);
-                        for (const [socket, chat] of sockets) {
-                            if (chat === messageParsed.chat) {
-                                socket.send(JSON.stringify(message));
-                                logger.info('Send message %s', message);
-                            }
-                        }
-                    }
-                });
-                await connectDB.query(queris.setHistoryRow, [chat, messageParsed.text, messageParsed.from]);
-                logger.info('MatiaDB %s WITH %s', queris.setHistoryRow, [chat, messageParsed.text, messageParsed.from]);
+                await methods.userMessage({ data: messageParsed, socket, usersList});
+                break;
             }
             case 'getHistory': {
-                updateUsersList(messageParsed.login, messageParsed.chat, socket);
-                logger.info('UsersList %s', usersList.keys());
-                const historyPool = await getHistory(messageParsed.chat);
-                socket.send(JSON.stringify(historyPool));
+                usersList = await methods.getHistory({ data: messageParsed, socket, usersList });
                 break;
             }
             case 'createChat': {
-                await connectDB.query(queris.createOrUpdateChat, [login, chat]);
-                console.log(queris.createOrUpdateChat, [login, chat]); //SQL LOG
-                break;
+                await methods.createChat({ data: messageParsed, socket, usersList });
+                break
             }
             case 'getActiveChats': {
-                const message = await getActiveChats(login);
-                socket.send(JSON.stringify(message));
+                await methods.getActiveChats({ data: user, socket, usersList });
                 break;
             }
             case 'inviteUser': {
-                const message = {
-                    type: 'Invite',
-                    from: messageParsed.from,
-                    to: messageParsed.to,
-                    chat: chat
-                }
-                const sockets = usersList.get(messageParsed.to);
-                for (const [socket, chat] of sockets) {
-                    socket.send(JSON.stringify(message));
-                    logger.info('Sended invite fo user "%s"', messageParsed.to);
-                }
+                methods.inviteUser({ data: messageParsed, socket, usersList });
                 break;
             }
             case 'responceToInvite': {
-                const message = await responceToInvite(messageParsed);
-                if (message.type === 'RejectInvate') {
-                    const sockets = usersList.get(messageParsed.from);
-                    for (const [socket, chat] of sockets) {
-                        socket.send(JSON.stringify(message));
-                    }
-                    logger.info('Sended reject to "%s" from "%s"', messageParsed.from, messageParsed.to);
-                }
+                methods.responceToInvite({ data: messageParsed, socket, usersList });
                 break;
             }
             default: {
@@ -145,15 +81,7 @@ socketServer.on('connection', (socket, user) => {
     });
 
     socket.on('close', () => {
-        const leaveUserSockets = usersList.get(user.login);
-        if (leaveUserSockets.size > 1) {
-            usersList.get(user.login).delete(socket);
-            logger.info('Socket for user "%s" deleted', user.login);
-        } else {
-            usersList.delete(user.login);
-            logger.info('User "%s" deleted from UsersList', user.login);
-        }
-        logger.info('UsersList was update: %s', usersList);
+        usersList = methods.close({ data: user, socket, usersList });
         getActiveUsers();
     });
 });

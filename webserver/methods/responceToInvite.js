@@ -2,20 +2,27 @@ const queris = require('../../app/db/queris');
 const db = require('../../app/db/db');
 const logger = require('../../app/config/winston');
 
-module.exports = async (messageParsed) => {
+module.exports = async ({ data, socket, usersList }) => {
     const message = {
         type: 'default',
-        from: messageParsed.from,
-        to: messageParsed.to,
-        chat: messageParsed.chat
+        from: data.from,
+        to: data.to,
+        chat: data.chat
     }
     const connectDB = await db.getConnection();
     
-    if (messageParsed.result === 1) {
-        await connectDB.query(queris.createOrUpdateChat, [messageParsed.to, messageParsed.chat]);
-        logger.info('MatiaDB %s WITH %s', queris.createOrUpdateChat, [messageParsed.to, messageParsed.chat]);
-    } else if (messageParsed.result === 2) {
+    if (data.result === 1) {
+        await connectDB.query(queris.createOrUpdateChat, [data.to, data.chat]);
+        logger.info('M A R I A %s WITH %s', queris.createOrUpdateChat, [data.to, data.chat]);
+    } else if (data.result === 2) {
         message.type = 'RejectInvate';
     }
-    return message;
+    
+    if (message.type === 'RejectInvate') {
+        const sockets = usersList.get(data.from);
+        for (const [socket, chat] of sockets) {
+            socket.send(JSON.stringify(message));
+        }
+        logger.info('Sended reject to "%s" from "%s"', data.from, data.to);
+    }
 }
