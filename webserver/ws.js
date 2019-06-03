@@ -40,44 +40,59 @@ socketServer.on('connection', (socket, user) => {
         const messageParsed = JSON.parse(message);
         logger.info('messageParsed: %s', JSON.parse(message));
 
-        switch (messageParsed.type) {
-            case 'registration': {
-                await methods.registration({ data: messageParsed, socket, usersList});
-                break;
-            };
-            case 'authorization': {
-                await methods.authorization({ data: messageParsed, socket, usersList});
-                break;
-            };
-            case 'userMessage': {
-                await methods.userMessage({ data: messageParsed, socket, usersList});
-                break;
-            }
-            case 'getHistory': {
-                usersList = await methods.getHistory({ data: messageParsed, socket, usersList });
-                break;
-            }
-            case 'createChat': {
-                await methods.createChat({ data: messageParsed, socket, usersList });
-                break
-            }
-            case 'getActiveChats': {
-                await methods.getActiveChats({ data: user, socket, usersList });
-                break;
-            }
-            case 'inviteUser': {
-                methods.inviteUser({ data: messageParsed, socket, usersList });
-                break;
-            }
-            case 'responceToInvite': {
-                methods.responceToInvite({ data: messageParsed, socket, usersList });
-                break;
-            }
-            default: {
-                logger.info('Прилетело что-то неопознаваемое: %s', message);
-                break;
-            }
+        const { type } = messageParsed;
+        console.log(type);
+        
+        const method = methods[type];
+        console.log(method);
+
+        if (typeof(method) !== 'function') {
+            logger.info('Прилетело что-то неопознаваемое: %s', message);
+            return;
         }
+
+        const data = type === 'getActiveChats' ? user : messageParsed;
+
+        await method({ data, socket, usersList });
+
+        // switch (messageParsed.type) {
+        //     case 'registration': {
+        //         await methods.registration({ data: messageParsed, socket, usersList});
+        //         break;
+        //     };
+        //     case 'authorization': {
+        //         await methods.authorization({ data: messageParsed, socket, usersList});
+        //         break;
+        //     };
+        //     case 'userMessage': {
+        //         await methods.userMessage({ data: messageParsed, socket, usersList});
+        //         break;
+        //     }
+        //     case 'getHistory': {
+        //         usersList = await methods.getHistory({ data: messageParsed, socket, usersList });
+        //         break;
+        //     }
+        //     case 'createChat': {
+        //         await methods.createChat({ data: messageParsed, socket, usersList });
+        //         break
+        //     }
+        //     case 'getActiveChats': {
+        //         await methods.getActiveChats({ data: user, socket, usersList });
+        //         break;
+        //     }
+        //     case 'inviteUser': {
+        //         methods.inviteUser({ data: messageParsed, socket, usersList });
+        //         break;
+        //     }
+        //     case 'responceToInvite': {
+        //         methods.responceToInvite({ data: messageParsed, socket, usersList });
+        //         break;
+        //     }
+        //     default: {
+        //         logger.info('Прилетело что-то неопознаваемое: %s', message);
+        //         break;
+        //     }
+        // }
     });
 
     socket.on('close', () => {
