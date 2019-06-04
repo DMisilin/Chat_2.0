@@ -2,18 +2,22 @@ module.exports = {
 
     getInfoUser: `SELECT * FROM users WHERE login = ?`,
 
-    addNewUser: `INSERT INTO users (login, password) VALUES (?, ?)`,
+    getChatsOfUser: `SELECT title FROM chats WHERE user = ?`,
 
-    checkUser: `SELECT * FROM users WHERE login = ? AND password = ?`,
+    getUsersOfChat: `SELECT user FROM chats WHERE title = ?`,
 
-    setHistoryRow: `INSERT INTO history (chat, text, sender) VALUES (?, ?, ?)`,
+    getChatNameById: `SELECT title FROM chats WHERE chat_id = ?`,
 
     getHystoryOfChat: `SELECT text, date, sender FROM history WHERE chat = ?`,
 
+    addNewUser: `INSERT INTO users (login, password) VALUES (?, ?)`,
+
+    setHistoryRow: `INSERT INTO history (chat, text, sender) VALUES (?, ?, ?)`,
+    
+    checkUser: `SELECT * FROM users WHERE login = ? AND password = ?`,
+
     createOrUpdateChat: `INSERT INTO chats (user, title) VALUES (?, ?)`,
 
-    getChatsOfUser: `SELECT title FROM chats WHERE user = ?`,
+    getLastIdChat: `SELECT LAST_INSERT_ID()`
 
-    getUsersOfChat: `SELECT user FROM chats WHERE title = ?`
-    
 }

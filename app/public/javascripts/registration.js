@@ -4,7 +4,7 @@
     let $password = document.querySelector('.password');
     let $error = document.querySelector('.error');
 
-    const ws = new WebSocket(`ws://localhost:40509/pages/registration.html?login=NewUser&chat=null`);
+    const ws = new WebSocket(`ws://localhost:40509/pages/registration.html?login=null&chat=null`);
 
     ws.onopen = () => {
         console.log(`Connected.`);

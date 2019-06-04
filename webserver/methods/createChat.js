@@ -1,7 +1,7 @@
 const queris = require('../../app/db/queris');
 const db = require('../../app/db/db');
 const logger = require('../../app/config/winston');
-const functions = require('./functions');
+const functions = require('../functions');
 
 module.exports = async ({ data, socket, usersList }) => {
     const connectDB = await db.getConnection();

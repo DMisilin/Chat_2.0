@@ -1,39 +1,43 @@
 const webSocket = require('ws');
 const http = require('http');
 const logger = require('../app/config/winston');
-const functions = require('./methods/functions');
+const functions = require('./functions');
 const methods = require('../webserver/methods/index');
+const User = require('./user');
 
 const httpServer = http.createServer();
 const socketServer = new webSocket.Server({ noServer: true });
 const port = 40509;
 let usersList = new Map();
 
-const getActiveUsers = () => {
-    const array = Array.from(usersList.keys());
-    const listActive = array.join(', ');
-    const message = {
-        type: 'apdateActiveUsersList',
-        body: listActive
-    }
-    socketServer.clients.forEach(each = (client) => {
-        client.send(JSON.stringify(message));
-    })
-}
+// const getActiveUsers = () => {
+//     const array = Array.from(usersList.keys());
+//     const listActive = array.join(', ');
+//     const message = {
+//         type: 'apdateActiveUsersList',
+//         body: listActive
+//     }
+//     socketServer.clients.forEach(each = (client) => {
+//         client.send(JSON.stringify(message));
+//     })
+// }
 
-httpServer.on('upgrade', (request, socket, head) => {
+httpServer.on('upgrade', async (request, socket, head) => {
     socketServer.handleUpgrade(request, socket, head, (socket) => {
-        const userParams = request.url.replace('/pages/chat.html?', '');
+        const userParams = request.url.split('?')[1];
         const login = functions.getValueFromURL('login', userParams);
-        const chat = functions.getValueFromURL('chat', userParams);
-        const user = { socket, login, chat };
-        usersList = functions.updateUsersList({ data: user, socket, usersList });
+        const chatId = functions.getValueFromURL('chat', userParams);
+        const chat = functions.getChatNameById(chatId);
+        const user = new User({login, chat, chatId, socket});
+        if(user.getLogin() != null) {
+            usersList.set(login, user);
+        }
         socketServer.emit('connection', socket, user);
     });
 });
 
 socketServer.on('connection', (socket, user) => {
-    getActiveUsers();
+    functions.getActiveUsers(usersList);
 
     socket.on('message', async (message) => {
         const messageParsed = JSON.parse(message);
@@ -59,50 +63,11 @@ socketServer.on('connection', (socket, user) => {
                 await method({ data: messageParsed, socket, usersList });
             } 
         }
-
-        // switch (messageParsed.type) {
-        //     case 'registration': {
-        //         await methods.registration({ data: messageParsed, socket, usersList});
-        //         break;
-        //     };
-        //     case 'authorization': {
-        //         await methods.authorization({ data: messageParsed, socket, usersList});
-        //         break;
-        //     };
-        //     case 'userMessage': {
-        //         await methods.userMessage({ data: messageParsed, socket, usersList});
-        //         break;
-        //     }
-        //     case 'getHistory': {
-        //         usersList = await methods.getHistory({ data: messageParsed, socket, usersList });
-        //         break;
-        //     }
-        //     case 'createChat': {
-        //         await methods.createChat({ data: messageParsed, socket, usersList });
-        //         break
-        //     }
-        //     case 'getActiveChats': {
-        //         await methods.getActiveChats({ data: user, socket, usersList });
-        //         break;
-        //     }
-        //     case 'inviteUser': {
-        //         methods.inviteUser({ data: messageParsed, socket, usersList });
-        //         break;
-        //     }
-        //     case 'responceToInvite': {
-        //         methods.responceToInvite({ data: messageParsed, socket, usersList });
-        //         break;
-        //     }
-        //     default: {
-        //         logger.info('Прилетело что-то неопознаваемое: %s', message);
-        //         break;
-        //     }
-        // }
     });
 
     socket.on('close', () => {
         usersList = methods.close({ data: user, socket, usersList });
-        getActiveUsers();
+        functions.getActiveUsers(usersList);
     });
 });
 
