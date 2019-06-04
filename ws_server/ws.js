@@ -1,40 +1,41 @@
 const webSocket = require('ws');
 const http = require('http');
-const logger = require('../app/config/winston');
-const functions = require('./functions');
-const methods = require('../webserver/methods/index');
+const logger = require('../ws_server/config/winston');
+const methods = require('./methods/index');
 const User = require('./user');
+const UserManager = require('./userManader');
 
 const httpServer = http.createServer();
 const socketServer = new webSocket.Server({ noServer: true });
 const port = 40509;
-let usersList = new Map();
+const userManager = new UserManager();
 
 httpServer.on('upgrade', async (request, socket, head) => {
     socketServer.handleUpgrade(request, socket, head, (socket) => {
         const userParams = request.url.split('?')[1];
-        const login = functions.getValueFromURL('login', userParams);
-        const chatId = functions.getValueFromURL('chat', userParams);
+        const login = userManager.getValueFromURL('login', userParams);
+        const chatId = userManager.getValueFromURL('chat', userParams);
         let user; 
-        if (usersList.has(login)) {
-            user = usersList.get(login);
+        if (userManager.checkUserInActive(login)) {
+            user = userManager.getUser(login);
             user.setConnection(socket, chatId);
         } else {
-            const chat = functions.getChatNameById(chatId);
-            user = new User({login, chat, chatId, socket});
-            usersList.set(login, user);            
+            const chatLabel = userManager.getChatLabelById(chatId);
+            user = new User({login, chatLabel, chatId, socket});
+            userManager.setUser(login, user);            
         }
         console.log('U S E R S    L I S T');
-        console.log(usersList);
+        console.log(userManager.getActiveUsers());
        
         socketServer.emit('connection', socket, user);
     });
 });
 
 socketServer.on('connection', (socket, user) => {
-    functions.getActiveUsers(usersList);
+    userManager.sendActiveUsersForAll();
 
     socket.on('message', async (message) => {
+        const usersList = userManager.getActiveUsers();
         const messageParsed = JSON.parse(message);
         logger.info('messageParsed: %s', JSON.parse(message));
         const { type } = messageParsed;
@@ -43,14 +44,14 @@ socketServer.on('connection', (socket, user) => {
                 logger.info('Прилетело что-то неопознаваемое: %s', message);
                 return;
             }
-            
-        await method({ data: messageParsed, socket, usersList });             
+
+        await method({ messageParsed, socket, usersList, user });             
         
     });
 
     socket.on('close', () => {
-        usersList = methods.close({ data: user, socket, usersList });
-        functions.getActiveUsers(usersList);
+        methods.close({ socket, usersList, user });
+        userManager.sendActiveUsersForAll();
     });
 });
 

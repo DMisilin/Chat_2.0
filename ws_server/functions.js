@@ -1,6 +1,6 @@
-const logger = require('../app/config/winston');
-const queris = require('../app/db/queris');
-const db = require('../app/db/db');
+const logger = require('../ws_server/config/winston');
+const queris = require('../ws_server/db/queris');
+const db = require('../ws_server/db/db');
 
 module.exports.getValueFromURL = (param, url) => {
     const params = url.split('&');
@@ -20,7 +20,7 @@ module.exports.updateUsersList = ({ data, socket, usersList }) => {
     return list;
 }
 
-module.exports.getChatNameById = async (chatId) => {
+module.exports.getChatLabelById = async (chatId) => {
     const connectDB = await db.getConnection();
     const [result] = await connectDB.query(queris.getChatNameById,[chatId]);
     logger.info('M A R I A %s WITH %s', queris.getChatNameById, [chatId]);
@@ -28,7 +28,7 @@ module.exports.getChatNameById = async (chatId) => {
     return result.title;
 }
 
-module.exports.getActiveUsers = async (usersList) => {
+module.exports.getActiveUsers = (usersList) => {
     const array = Array.from(usersList.keys());
     const listActive = array.join(', ');
     const message = {

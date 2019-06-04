@@ -18,6 +18,6 @@ module.exports = {
 
     createOrUpdateChat: `INSERT INTO chats (user, title) VALUES (?, ?)`,
 
-    getLastIdChat: `SELECT LAST_INSERT_ID()`
+    getLastIdChat: `SELECT LAST_INSERT_ID() as ID`
 
 }

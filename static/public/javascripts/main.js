@@ -88,8 +88,8 @@
             console.log(`Created new dialog - "${nameNewChat}"`);
             const message = {
                 type: 'createChat',
-                chat: nameNewChat,
-                login: login
+                chatLabel: nameNewChat,
+                creator: login
             }
             ws.send(JSON.stringify(message));
         }
@@ -137,7 +137,7 @@
                 deleteAndAddHistory(history);
                 break;
             }
-            case 'apdateActiveUsersList': {
+            case 'updateActiveUsersList': {
                 const users = parsedMessage.body.split(', ');
                 apdateActiveUsersList(users);
                 console.log(parsedMessage.body);
