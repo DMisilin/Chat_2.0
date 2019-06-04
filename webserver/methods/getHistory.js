@@ -3,7 +3,7 @@ const db = require('../../app/db/db');
 const logger = require('../../app/config/winston');
 const functions = require('../functions');
 
-module.exports = async ({ data, socket, usersList }) => {
+module.exports = async ({ data, socket, usersList, user }) => {
     const list = functions.updateUsersList({ data, socket, usersList });
 
     const connectDB = await db.getConnection();

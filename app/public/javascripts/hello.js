@@ -3,10 +3,10 @@
     const $createAccount = document.querySelector('.createAccount');
     
     $createAccount.onclick = () => {
-        window.location = 'http://localhost:3000/pages/registration.html?login=null&chat=null';
+        window.location = 'http://localhost:3000/pages/registration.html?login=systemuser&chat=systemchat';
     }
     
     $haveAccount.onclick = () => {
-        window.location = 'http://localhost:3000/pages/authorization.html?login=null&chat=null';
+        window.location = 'http://localhost:3000/pages/authorization.html?login=systemuser&chat=systemchat';
     }
 })();

@@ -1,7 +1,6 @@
 const logger = require('../app/config/winston');
 const queris = require('../app/db/queris');
 const db = require('../app/db/db');
-const User = require('./user');
 
 module.exports.getValueFromURL = (param, url) => {
     const params = url.split('&');
@@ -29,7 +28,7 @@ module.exports.getChatNameById = async (chatId) => {
     return result.title;
 }
 
-module.exports.getActiveUsers = (usersList) => {
+module.exports.getActiveUsers = async (usersList) => {
     const array = Array.from(usersList.keys());
     const listActive = array.join(', ');
     const message = {
@@ -37,7 +36,8 @@ module.exports.getActiveUsers = (usersList) => {
         body: listActive
     }
     for (const [login, user] of usersList) {
-        const connections = user.getConnection;
+        const tempUser = user;
+        const connections = tempUser.getConnections();
         for (const [socket, chat] of connections) {
             socket.send(JSON.stringify(message));
             logger.info('Send "apdateActiveUsersList" to %s', login);

@@ -1,6 +1,6 @@
 const logger = require('../../app/config/winston');
 
-module.exports = ({ data, socket, usersList }) => {
+module.exports = ({ data, socket, usersList, user }) => {
     const list = usersList;
     const leaveUserSockets = list.get(data.login);
     if (leaveUserSockets.size > 1) {

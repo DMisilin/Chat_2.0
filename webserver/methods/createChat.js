@@ -3,7 +3,7 @@ const db = require('../../app/db/db');
 const logger = require('../../app/config/winston');
 const functions = require('../functions');
 
-module.exports = async ({ data, socket, usersList }) => {
+module.exports = async ({ data, socket, usersList, user }) => {
     const connectDB = await db.getConnection();
     await connectDB.query(queris.createOrUpdateChat, [data.login, data.chat]);
 

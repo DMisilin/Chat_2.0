@@ -2,7 +2,7 @@ const queris = require('../../app/db/queris');
 const db = require('../../app/db/db');
 const logger = require('../../app/config/winston');
 
-module.exports = async ({ data, socket, usersList }) => {
+module.exports = async ({ data, socket, usersList, user }) => {
     const connectDB = await db.getConnection();
     const [result] = await connectDB.query(queris.getChatsOfUser, [data.login]);
     logger.info('MatiaDB %s WITH %s', queris.getChatsOfUser, [data.login]);

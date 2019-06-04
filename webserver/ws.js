@@ -10,28 +10,23 @@ const socketServer = new webSocket.Server({ noServer: true });
 const port = 40509;
 let usersList = new Map();
 
-// const getActiveUsers = () => {
-//     const array = Array.from(usersList.keys());
-//     const listActive = array.join(', ');
-//     const message = {
-//         type: 'apdateActiveUsersList',
-//         body: listActive
-//     }
-//     socketServer.clients.forEach(each = (client) => {
-//         client.send(JSON.stringify(message));
-//     })
-// }
-
 httpServer.on('upgrade', async (request, socket, head) => {
     socketServer.handleUpgrade(request, socket, head, (socket) => {
         const userParams = request.url.split('?')[1];
         const login = functions.getValueFromURL('login', userParams);
         const chatId = functions.getValueFromURL('chat', userParams);
-        const chat = functions.getChatNameById(chatId);
-        const user = new User({login, chat, chatId, socket});
-        if(user.getLogin() != null) {
-            usersList.set(login, user);
+        let user; 
+        if (usersList.has(login)) {
+            user = usersList.get(login);
+            user.setConnection(socket, chatId);
+        } else {
+            const chat = functions.getChatNameById(chatId);
+            user = new User({login, chat, chatId, socket});
+            usersList.set(login, user);            
         }
+        console.log('U S E R S    L I S T');
+        console.log(usersList);
+       
         socketServer.emit('connection', socket, user);
     });
 });
@@ -44,25 +39,13 @@ socketServer.on('connection', (socket, user) => {
         logger.info('messageParsed: %s', JSON.parse(message));
         const { type } = messageParsed;
         const method = methods[type];
-
-        if (typeof(method) !== 'function') {
-            logger.info('Прилетело что-то неопознаваемое: %s', message);
-            return;
-        }
-
-        switch(type) {
-            case 'getActiveChats': {
-                await methods.getActiveChats({ data: user, socket, usersList });
-                break;
+            if (typeof(method) !== 'function') {
+                logger.info('Прилетело что-то неопознаваемое: %s', message);
+                return;
             }
-            case 'getHistory': {
-                usersList = await methods.getHistory({ data: messageParsed, socket, usersList }); 
-                break;
-            }
-            default: {
-                await method({ data: messageParsed, socket, usersList });
-            } 
-        }
+            
+        await method({ data: messageParsed, socket, usersList });             
+        
     });
 
     socket.on('close', () => {

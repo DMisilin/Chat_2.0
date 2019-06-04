@@ -2,7 +2,7 @@ const queris = require('../../app/db/queris');
 const db = require('../../app/db/db');
 const logger = require('../../app/config/winston');
 
-module.exports = async ({ data, socket, usersList }) => {
+module.exports = async ({ data, socket, usersList, user }) => {
     const connectDB = await db.getConnection();
     message = {
         type: 'messageOk',
