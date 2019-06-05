@@ -1,27 +1,23 @@
 const queris = require('../db/queris');
 const db = require('../db/db');
 const logger = require('../config/winston');
-const functions = require('../helper');
 
 module.exports = async ({ messageParsed, socket, usersList, user }) => {
     const loginUser = user.getLogin();
     const connectDB = await db.getConnection();
-    console.log('VVVVVVVVVVVV');
-    console.log(messageParsed.creator);
-    console.log(loginUser);
+
     await connectDB.query(queris.createOrUpdateChat, [messageParsed.creator, messageParsed.chatLabel]);
+
     const [idNewChat] = await connectDB.query(queris.getLastIdChat);
     const chatId = idNewChat[0].ID;
-    console.log(chatId);
-
-    const [result] = await connectDB.query(queris.getChatsOfUser, [messageParsed.login]);
-    logger.info('M A R I A %s WITH %s', queris.getChatsOfUser, [messageParsed.login]);
-
+    const [result] = await connectDB.query(queris.getChatsOfUser, [loginUser]);
+    logger.info('M A R I A %s WITH %s', queris.getChatsOfUser, [loginUser]);
     const chatList = [];
 
     result.forEach((item) => {
         chatList.push(item.title);
     });
+
     logger.info('Active chat for "%s" - "%s"', messageParsed.creator, chatList);
 
     const message = {
@@ -30,8 +26,7 @@ module.exports = async ({ messageParsed, socket, usersList, user }) => {
         chats: chatList,
 
     }
-    const creator = user;
-    const sockets = creator.getConnections();
+    const sockets = user.getConnections();
     for (const [socket, chat] of sockets) {
 
         socket.send(JSON.stringify(message));

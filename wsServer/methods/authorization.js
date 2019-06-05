@@ -18,6 +18,7 @@ module.exports = async ({ messageParsed, socket, usersList, user }) => {
         responceAuthorization.type = 'successAuthorization';
         responceAuthorization.body = `${messageParsed.login}`;
     }
+    
     socket.send(JSON.stringify(responceAuthorization));
     logger.info('responceAuthorization: %s', responceAuthorization);
 }

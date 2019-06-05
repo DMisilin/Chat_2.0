@@ -1,6 +1,6 @@
-const logger = require('../ws_server/config/winston');
-const queris = require('../ws_server/db/queris');
-const db = require('../ws_server/db/db');
+const logger = require('./config/winston');
+const helper = require('./helper');
+const User = require('./user');
 
 module.exports = class UserManager {
     constructor() {
@@ -19,8 +19,8 @@ module.exports = class UserManager {
         this.activeUsers.set(login, user);
     }
 
-    checkUserInActive = (login) => {
-        return this.activeUsers.has(login);
+    deleteUser = (login) => {
+        this.activeUsers.delete(login);
     }
 
     sendActiveUsersForAll = () => {
@@ -32,6 +32,7 @@ module.exports = class UserManager {
         }
         for (const [login, user] of this.activeUsers) {
             const connections = user.getConnections();
+
             for (const [socket, chat] of connections) {
                 socket.send(JSON.stringify(message));
                 logger.info('Send "updateActiveUsersList" to %s', login);
@@ -39,31 +40,31 @@ module.exports = class UserManager {
         }
     }
 
-    sendMessageForAllActive = (message) => {
+    sendMessageForAllUsers = (message) => {
         for (const [login, user] of this.activeUsers) {
             const sockets = user.getConnections();
+
             for (const socket of sockets) {
                 socket.send(JSON.stringify(message));
             }
         }
     }
 
-    getChatLabelById = async (chatId) => {
-        if(chatId === '0000') return 'systemchat';
+    updateActiveUsers = (url, socket) => {
+        const urlParams = url.split('?')[1];
+        const login = helper.getValueFromURL('login', urlParams);
+        const chatId = helper.getValueFromURL('chat', urlParams);
+        let user; 
         
-        const connectDB = await db.getConnection();
-        const [result] = await connectDB.query(queris.getChatNameById,[chatId]);
-        logger.info('M A R I A %s WITH %s', queris.getChatNameById, [chatId]);
-        console.log('#################################');
-        logger.info(result[0].title);
-        return result[0].title;
-    }
-
-    getValueFromURL = (param, url) => {
-        const params = url.split('&');
-        switch (param) {
-            case 'login': return params[0].replace('login=', '');
-            case 'chat': return params[1].replace('chat=', '');
+        if (this.activeUsers.has(login)) {
+            user = this.activeUsers.get(login);
+            user.setConnection(socket, chatId);
+        } else {
+            const chatLabel = helper.getChatLabelById(chatId);
+            user = new User({login, chatLabel, chatId, socket});
+            this.activeUsers.set(login, user);            
         }
+
+        return user;
     }
 }

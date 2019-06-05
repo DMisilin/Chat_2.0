@@ -45,6 +45,7 @@ module.exports = class User {
 
     sendMessageFromChat = (message, _chatId) => {
         for (const [socket, chatId] of this.connections) {
+            
             if (_chatId === chatId) {
                 socket.send(JSON.stringify(message));
                 logger.info('SEND message "%s" for user "%s"', message, this.login);

@@ -1,4 +1,4 @@
-const logger = require('../../ws_server/config/winston');
+const logger = require('../config/winston');
 
 module.exports = ({ messageParsed, socket, usersList, user }) => {
     const liver = user;

@@ -2,7 +2,6 @@ const webSocket = require('ws');
 const http = require('http');
 const logger = require('./config/winston');
 const methods = require('./methods/index');
-const User = require('./user');
 const UserManager = require('./userManader');
 
 const httpServer = http.createServer();
@@ -12,19 +11,8 @@ const userManager = new UserManager();
 
 httpServer.on('upgrade', async (request, socket, head) => {
     socketServer.handleUpgrade(request, socket, head, (socket) => {
-        userManager.updateActiveUsers(request.url, socket);
-        // const userParams = request.url.split('?')[1];
-        // const login = userManager.getValueFromURL('login', userParams);
-        // const chatId = userManager.getValueFromURL('chat', userParams);
-        // let user; 
-        // if (userManager.checkUserInActive(login)) {
-        //     user = userManager.getUser(login);
-        //     user.setConnection(socket, chatId);
-        // } else {
-        //     const chatLabel = userManager.getChatLabelById(chatId);
-        //     user = new User({login, chatLabel, chatId, socket});
-        //     userManager.setUser(login, user);            
-        // }
+
+        const user = userManager.updateActiveUsers(request.url, socket);
         console.log('U S E R S    L I S T');
         console.log(userManager.getActiveUsers());
        
@@ -41,6 +29,7 @@ socketServer.on('connection', (socket, user) => {
         logger.info('messageParsed: %s', JSON.parse(message));
         const { type } = messageParsed;
         const method = methods[type];
+
             if (typeof(method) !== 'function') {
                 logger.info('Прилетело что-то неопознаваемое: %s', message);
                 return;
@@ -51,7 +40,7 @@ socketServer.on('connection', (socket, user) => {
     });
 
     socket.on('close', () => {
-        methods.close({ socket, usersList, user });
+        methods.close({ socket, userManager, user });
         userManager.sendActiveUsersForAll();
     });
 });
