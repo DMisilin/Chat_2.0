@@ -9,6 +9,6 @@ module.exports = {
     },
 
     level: {
-        consoleLevel: 'info'
+        consoleLevel: 'silly'
     }    
 };

@@ -111,6 +111,8 @@
                 text: $inputText.value,
                 login: login
             }
+            console.log('S E N G ===>');
+            console.log(message);
             ws.send(JSON.stringify(message));
             $inputText.value = '';
         }
@@ -119,11 +121,13 @@
     ws.onmessage = (event) => {
         const chat_id = getValueFromURL('chat_id');
         const parsedMessage = JSON.parse(event.data);
-        console.log('JSON.parse(event.data)');
+        console.log('I N C O M E == JSON.parse(event.data)');
         console.log(JSON.parse(event.data));
 
         switch (parsedMessage.type) {
             case 'messageOk': {
+                console.log(parsedMessage.chat_id);
+                console.log(chat_id);
                 if (parsedMessage.chat_id === chat_id) {
                     let $newMessage = document.createElement('div');
                     $newMessage.innerText = parsedMessage.body;
