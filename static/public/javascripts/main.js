@@ -6,7 +6,7 @@
     const $history = document.querySelector('.history');
     const $errorText = document.querySelector('.errorText');
     const $usersList = document.querySelector('.userslist');
-    
+
     const getValueFromURL = (param) => {
         const params = new URL(document.location.href).searchParams;
         return params.get(param);
@@ -26,7 +26,7 @@
             type: 'inviteUser',
             from: from,
             to: to,
-            chat: getValueFromURL('chat')
+            chat_id: getValueFromURL('chat_id')
         }
         ws.send(JSON.stringify(message));
         console.log(JSON.stringify(message));
@@ -51,17 +51,17 @@
     };
 
     const login = getValueFromURL('login');
-    const chat = getValueFromURL('chat');
-    const ws = new WebSocket(`ws://localhost:40509/pages/chat.html?login=${login}&chat=${chat}`);
+    const chat_id = getValueFromURL('chat_id');
+    const ws = new WebSocket(`ws://localhost:40509/pages/chat.html?login=${login}&chat_id=${chat_id}`);
 
-    const click = (chat) => {
-        console.log(`onlick to - ${chat}`);
-        history.pushState({}, null, `chat.html?login=${login}&chat=${chat}`);
+    const click = (chat_id) => {
+        console.log(`onlick to - ${chat_id}`);
+        history.pushState({}, null, `chat.html?login=${login}&chat_id=${chat_id}`);
 
         const message = {
             type: 'getHistory',
             login: login,
-            chat: chat
+            chat_id: chat_id
         }
         console.log(JSON.stringify(message));
         ws.send(JSON.stringify(message));
@@ -70,12 +70,12 @@
         while ($chatList.firstChild) {
             $chatList.removeChild($chatList.firstChild);
         }
-        chats.forEach((item) => {
+        chats.forEach((chat) =>  {
             const $chat = document.createElement('button');
-            $chat.innerText = item;
-            $chat.onclick = () => click(item);
+            $chat.innerText = chat.chat_label;
+            $chat.onclick = () => click(chat.chat_id);
             $chatList.appendChild($chat);
-        })
+        });
     };
 
     ws.onopen = () => {
@@ -103,29 +103,28 @@
                 $errorText.innerText = '';
             }; //очистка сообщения об ошибке, если оно было
             const login = getValueFromURL('login');
-            const chat = getValueFromURL('chat');
+            const chat_id = getValueFromURL('chat_id');
             const message = {
                 type: 'userMessage',
                 from: login,
-                chat: chat,
+                chat_id: chat_id,
                 text: $inputText.value,
                 login: login
             }
             ws.send(JSON.stringify(message));
             $inputText.value = '';
-            console.log(JSON.stringify(message));
         }
     };
 
     ws.onmessage = (event) => {
-        const chat = getValueFromURL('chat');
+        const chat_id = getValueFromURL('chat_id');
         const parsedMessage = JSON.parse(event.data);
         console.log('JSON.parse(event.data)');
         console.log(JSON.parse(event.data));
 
         switch (parsedMessage.type) {
             case 'messageOk': {
-                if (parsedMessage.chat === chat) {
+                if (parsedMessage.chat_id === chat_id) {
                     let $newMessage = document.createElement('div');
                     $newMessage.innerText = parsedMessage.body;
                     $history.insertBefore($newMessage, $history.children[0]);

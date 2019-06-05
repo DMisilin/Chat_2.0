@@ -1,4 +1,4 @@
-const logger = require('./config/winston');
+const logger = require('./config/logger');
 const helper = require('./helper');
 const User = require('./user');
 
@@ -13,6 +13,10 @@ module.exports = class UserManager {
 
     getActiveUsers = () => {
         return this.activeUsers;
+    }
+
+    checkActivity = (login) => {
+        return this.activeUsers.has(login);
     }
 
     setUser = (login, user) => {

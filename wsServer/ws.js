@@ -1,6 +1,6 @@
 const webSocket = require('ws');
 const http = require('http');
-const logger = require('./config/winston');
+const logger = require('./config/logger');
 const methods = require('./methods/index');
 const UserManager = require('./userManader');
 
@@ -13,6 +13,10 @@ httpServer.on('upgrade', async (request, socket, head) => {
     socketServer.handleUpgrade(request, socket, head, (socket) => {
 
         const user = userManager.updateActiveUsers(request.url, socket);
+
+        userManager.sendActiveUsersForAll();
+        methods.getActiveChats({ messageParsed: null, socket, userManager, user });
+
         console.log('U S E R S    L I S T');
         console.log(userManager.getActiveUsers());
        
@@ -24,7 +28,6 @@ socketServer.on('connection', (socket, user) => {
     userManager.sendActiveUsersForAll();
 
     socket.on('message', async (message) => {
-        const usersList = userManager.getActiveUsers();
         const messageParsed = JSON.parse(message);
         logger.info('messageParsed: %s', JSON.parse(message));
         const { type } = messageParsed;
@@ -35,7 +38,7 @@ socketServer.on('connection', (socket, user) => {
                 return;
             }
 
-        await method({ messageParsed, socket, usersList, user });             
+        await method({ messageParsed, socket, userManager, user });             
         
     });
 

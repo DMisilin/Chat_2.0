@@ -1,6 +1,6 @@
 const queris = require('../db/queris');
 const db = require('../db/db');
-const logger = require('../config/winston');
+const logger = require('../config/logger');
 
 module.exports = async ({ data, socket, usersList, user }) => {
     const message = {

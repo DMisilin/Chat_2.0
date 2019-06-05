@@ -1,5 +1,5 @@
 const mysql2 = require('mysql2/promise');
-const config = require('../config/config');
+const config = require('../config/configDB');
 
 module.exports = new class DB {
     constructor() {

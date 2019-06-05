@@ -1,4 +1,4 @@
-const logger = require('./config/winston');
+const logger = require('./config/logger');
 const queris = require('./db/queris');
 const db = require('./db/db');
 
@@ -6,7 +6,7 @@ module.exports.getValueFromURL = (param, url) => {
     const params = url.split('&');
     switch (param) {
         case 'login': return params[0].replace('login=', '');
-        case 'chat': return params[1].replace('chat=', '');
+        case 'chat': return params[1].replace('chat_id=', '');
     }
 }
 
